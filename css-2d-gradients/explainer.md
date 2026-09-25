@@ -68,7 +68,9 @@ There are two proposed new `<gradient>` type functions.
 
 ### `mesh-gradient()`
 
-A mesh gradient is created by specifying a 2D grid of colour stops across the gradient box. Each cell in the grid is called a patch. To render the a mesh gradient, the user agent interpolates the colours defined in the colour stops at the corners of each patch; typically using a _coons patch_ or _tensor-product patch_.
+A mesh gradient is created by specifying a 2D grid of colour stops across the gradient box. Each cell in the grid is called a patch.
+
+To render the a mesh gradient, the user agent interpolates the colours defined in the colour stops at the corners of each patch; typically using a _coons patch_ or _tensor-product patch_.
 
 The following image is an example of a mesh gradient being edited in Affinity. It demonstrates the grid vertices and the bezier curve control points associated with a colour stop.
 
@@ -114,10 +116,14 @@ background-image: mesh-gradient(
 
 ### `freeform-gradient()`
 
-A freeform gradient is created by specifying colour stops made from points or lines at any arbitrary position on the gradient box. To render the freeform gradient, the user agent [???].
+A freeform gradient is created by specifying colour stops made from points or lines at any arbitrary position on the gradient box. Each colour stop can have a spread value, which represents how much weight or dominance the colour has over other colours when they are interpolated.
+
+To render the freeform gradient, the user agent can do a Delauney triangulation to produce a mesh using the colour points and then interpolate the intermediate colours.
 
 > [!NOTE]
-> The term _freeform gradient_ is coined by Adobe. Unlike mesh gradients, freeform gradients do not exist outside of the Adobe ecosystem.
+> The term _freeform gradient_ was coined by Adobe and isn't a commonly used term outside of the Adobe ecosystem. They are not a clearly defined and well established concept like mesh gradients. No other graphics editing application can create them.
+>
+> This proposal seeks to replicate the capability of Adobe's implementation of freeform gradients. However, we can bikeshed a different name.
 
 The following image is an example of a freeform gradient being edited in Adobe Illustrator. It demonstrates 16 colour stops placed in roughly the same locations as the mesh gradient example above, but the result is very different. A couple of the colour stops have had their spread value increased by a small amount.
 
@@ -125,14 +131,14 @@ The following image is an example of a freeform gradient being edited in Adobe I
 
 Freeform gradients are simple for authors to define, because they can place colour stops arbitrarily. Therefore, the proposed CSS syntax should also be simple for authors to write by hand without tooling.
 
-The proposed API was designed with help from Sebastian Zartner, Lea Verou and Tab Atkins-Bittner. The syntax definition is:
+The proposed API was designed with help from Sebastian Zartner, Lea Verou, Bramus and Tab Atkins-Bittner. The syntax definition is:
 
 ```
 freeform-gradient( <color-interpolation-method>? , <freeform-point># )
 <freeform-point> = <color> <number>? <position>+
 ```
 
-The syntax lists each colour stop with a number representing the spread value (how much weight or dominance the colour has over other colours) and position. The author can optionally list multiple positions to form a line.
+The syntax lists each colour stop with a number representing the spread value and position. The author can optionally list multiple positions to form a line.
 
 The simplest example of a freeform gradient using this syntax is:
 
@@ -151,15 +157,23 @@ background-image: freeform-gradient(
 
 ### Comparison of mesh and freeform gradients
 
-Mesh gradients are a well known type of gradient in computer graphics. They were first introduced in Adobe Illustrator 8.0 in 1998 and were later supported in other graphics applications; whereas freeform gradients were introduced only in Adobe Illustrator 23.0 in 2018 and do not exist in other graphics applications (as far as I know).
+Mesh gradients are a well known type of gradient in computer graphics. They were first introduced in Adobe Illustrator 8.0 in 1998 and were later supported in other graphics applications; whereas freeform gradients were introduced only in Adobe Illustrator 23.0 in 2018 and do not exist in other image editing applications (as far as I know).
 
-Freeform gradients have a much simpler API than mesh gradients, so it would be easier for authors to write them in CSS by hand without using tooling.
+Unlike freeform gradients, mesh gradients are supported in many graphics libraries including Skia, SwiftUI and Android UI (but they do not out-of-the-box allow developers to select different colour space interpolations).
+
+Freeform gradients have a much simpler API than mesh gradients, so they would be much easier for authors to write in CSS by hand without using tooling.
 
 They both produce different types of 2D gradients. Generally, mesh gradients can't reproduce a complex freeform gradient, and visa versa.
 
 ### Solving PDF serialisation
 
-[todo]
+The PDF specification ISO 32000-2 section 8.7.4.5.8 defines tensor-product patch mesh shadings which can be used to represent both mesh gradients and freeform gradients with bicubic colour interpolation.
+
+The CSS colour interpolation method can also supported in PDFs. This is done by providing a function for custom colour interpolation.
+
+The issue includes [further discussion on PDF serialisation.](https://github.com/w3c/csswg-drafts/issues/7648#issuecomment-4807416203)
+
+However, some PDF viewers have low quality support for coons patch and tensor-product patch shadings, which can cause strange rendering artifacts including patches overlapping incorrectly or gaps where the patches join. We hope that, if 2D gradients become more popular, PDF implementations will improve the quality of their patch shading renders.
 
 ## Alternatives considered
 
@@ -168,7 +182,7 @@ from high level architectural decisions down to alternative naming choices.
 If you capture your alternatives as Architectural Decision Records,
 use this section to link to the ADRs.] -->
 
-### Use SVG2 mesh gradients instead
+### Define mesh gradients in SVG instead
 
 The SVG Working Group had proposed a `MeshGradient` element and related elements for SVG 2, but these were removed from the draft specification in 2018.
 
@@ -183,7 +197,9 @@ The SVG Working Group had proposed a `MeshGradient` element and related elements
 
 #### Reason for rejection
 
-Recent suggestions by SVGWG and CSSWG contributors have shown that it is possible to make a CSS-style functional notation to create mesh gradients in CSS. I think we are willing to accept that the CSS function will still be complex for more complex gradients, and we can still provide the freeform gradient function if authors want a simpler hand-written option.
+Recent suggestions by contributors to the SVGWG and CSSWG have shown that it is possible to make a CSS-style functional notation to create mesh gradients in CSS.
+
+I think we are willing to accept that the CSS function will still appear complex to authors when defining very detailed gradients, and we can still provide the freeform gradient function if authors want a simpler hand-written option. We make the simple things easy and the complex things possible.
 
 ### A choice of colour interpolation algorithms
 
@@ -202,11 +218,13 @@ Mesh gradient implementations typically provide either bilinear or bicubic colou
 
 I don't think authors will ever want to use bilinear, so this proposal only uses bicubic. If we do find a reason why authors would want bilinear, we can make it an optional argument in the API and make bicubic the default.
 
+Notably, SwiftUI's mesh gradient API makes bicubic the default.
+
 ## Accessibility, Internationalization, Privacy, and Security Considerations
 
 As with the existing types of image gradients, authors should be careful not to cause text colour contrast issues with 2D gradients.
 
-## Stakeholder Feedback / Opposition
+<!-- ## Stakeholder Feedback / Opposition
 
 [Implementors and other stakeholders may already have publicly stated positions on this work. If you can, list them here with links to evidence as appropriate.]
 
@@ -214,26 +232,25 @@ As with the existing types of image gradients, authors should be careful not to 
 - [Stakeholder B] : No signals
 - [Implementor C] : Negative
 
-[If appropriate, explain the reasons given by other implementors for their concerns.]
+[If appropriate, explain the reasons given by other implementors for their concerns.] -->
 
 ## References & acknowledgements
 
-[Your design will change and be informed by many people; acknowledge them in an ongoing way! It helps build community and, as we only get by through the contributions of many, is only fair.]
+So many members and contributors to the CSSWG have been involved in the research and feedback for this proposal, whom I am incredibly grateful to. This has truly been a collaborative piece, with very little of the work my own. Many thanks for valuable feedback and advice from:
 
-[Unless you have a specific reason not to, these should be in alphabetical order.]
+- Amelia Bellamy-Royds for mesh gradient expertise and opinions and the initial proposal for the mesh gradient function syntax
+- Bramus for doing a lot of research and creating an AI-generated prototype tool that was incredibly helpful in understanding implementation support and exploring API proposals
+- Chris Lilly for explaining how freeform gradients can be rendered and for general advice and support
+- Lea Verou for improving on the freeform gradient syntax
+- Mike Bremford (faceless2) for sharing the SVG2 `MeshGradient` proposal and for general PDF expertise
+- Sebastian Zartner for helping to define the freeform gradient syntax and investigating PDF viewer support for mesh gradients
+- Tab Atkins-Bittner for proposing a more CSS-style API for defining mesh gradients and for general advice and feedback
 
-Many thanks for valuable feedback and advice from:
-
-- [Person 1]
-- [Person 2]
-- [etc.]
+(If anyone is missing from this list, please let me know and I will add you.)
 
 Thanks to the following proposals, projects, libraries, frameworks, and languages
 for their work on similar problems that influenced this proposal.
 
-- [Framework 1]
-- [Project 2]
-- [Proposal 3]
-- [etc.]
-
-[link to SwiftUI and Android APIs used as reference]
+- [SVG2 2015: Mesh gradients](https://www.w3.org/TR/2015/WD-SVG2-20150409/pservers.html#MeshGradients)
+- [SwiftUI: Mesh gradient](https://developer.apple.com/documentation/swiftui/meshgradient)
+- [Android UI: Mesh gradient](https://developer.android.com/develop/ui/compose/graphics/draw/mesh-gradient)
