@@ -16,11 +16,25 @@ This document summarises the collective design work on 2D gradients in [CSSWG Gi
 
 [CSSWG GitHub issue#7648](https://github.com/w3c/csswg-drafts/issues/7648)
 
-## Table of Contents [if the explainer is longer than one printed page]
-
-[You can generate a Table of Contents for markdown documents using a tool like [doctoc](https://github.com/thlorenz/doctoc).]
+## Table of Contents
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Introduction](#introduction)
+- [User-Facing Problem](#user-facing-problem)
+  - [Goals](#goals)
+- [Proposed Approach](#proposed-approach)
+  - [`mesh-gradient()`](#mesh-gradient)
+  - [`freeform-gradient()`](#freeform-gradient)
+  - [Comparison of mesh and freeform gradients](#comparison-of-mesh-and-freeform-gradients)
+  - [Solving PDF serialisation](#solving-pdf-serialisation)
+- [Alternatives considered](#alternatives-considered)
+  - [Define mesh gradients in SVG instead](#define-mesh-gradients-in-svg-instead)
+  - [A choice of colour interpolation algorithms](#a-choice-of-colour-interpolation-algorithms)
+- [Accessibility, Internationalization, Privacy, and Security Considerations](#accessibility-internationalization-privacy-and-security-considerations)
+- [References & acknowledgements](#references--acknowledgements)
+
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Introduction
