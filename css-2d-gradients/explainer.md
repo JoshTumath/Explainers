@@ -82,7 +82,7 @@ There are two proposed new `<gradient>` type functions.
 
 ### `mesh-gradient()`
 
-A mesh gradient is created by specifying a 2D grid of colour stops across the gradient box. Each cell in the grid is called a patch.
+A mesh gradient is created by specifying a 2D grid of colour stops across the gradient box (defaulting to an evenly-spaced grid). Each cell in the grid is called a patch. Optionally, the borders of each patch can be specified as a Bezier curve (defaulting to a straight line between the corners).
 
 To render the a mesh gradient, the user agent interpolates the colours defined in the colour stops at the corners of each patch; typically using a _coons patch_ or _tensor-product patch_.
 
@@ -90,7 +90,7 @@ The following image is an example of a mesh gradient being edited in Affinity. I
 
 ![Screenshot of a mesh gradient being edited in Affinity.](./mesh-gradient-editing.png)
 
-Mesh gradients have a complex set of data points. I expected authors will prefer to define them using a design tool rather than handwrite them.
+Mesh gradients, beyond the most trivial "color in each corner" variety, are complex to define, and somewhat difficult to predict the appearance of from the text. I expect authors will prefer to define them using a visual design tool rather than handwrite them.
 
 The proposed API is designed by Tab Atkins-Bittner, improving on a previous design by Amelia Bellamy-Royds. The syntax definition is:
 
@@ -104,7 +104,7 @@ mesh-gradient( [ <color-interpolation-method> || <color> ]?,
 <mesh-relative-control-point> = <coordinate-pair> [from origin]?
 ```
 
-The syntax defines the grid in rows. Each colour stop is separated by a comma (`,`) and row is separated by a semicolon (`;`). The colour stops use the same positioning syntax as `background-position`. The bezier control points are specified after the slash (`/`). Like with other gradients, the author can specify the colour interpolation method.
+The syntax defines the grid in rows. Each colour stop is separated by a comma (`,`) and row is separated by a semicolon (`;`). The colour stops use the same positioning syntax as `background-position`. The bezier control points are specified after the `with`, with multiples separated by slash (`/`). Like with other gradients, the author can specify the colour interpolation method. They can also define a solid color to fill the rest of the image not covered by the patches, if they have shifted the positions of "exterior" color-stops or their borders.
 
 The simplest example of a mesh gradient using this syntax is:
 
@@ -132,10 +132,10 @@ background-image: mesh-gradient(
 
 A freeform gradient is created by specifying colour stops made from points or lines at any arbitrary position on the gradient box. Each colour stop can have a spread value, which represents how much weight or dominance the colour has over other colours when they are interpolated.
 
-To render the freeform gradient, the user agent can do a Delauney triangulation to produce a mesh using the colour points and then interpolate the intermediate colours.
+To render the freeform gradient, the user agent interpolates the color of the "nearby" color stops, based on their distance and spread. This can be done with, for example, a Delauney triangulation to produce a mesh around the colour points and then interpolate the intermediate colours.
 
 > [!NOTE]
-> The term _freeform gradient_ was coined by Adobe and isn't a commonly used term outside of the Adobe ecosystem. They are not a clearly defined and well established concept like mesh gradients. No other graphics editing application can create them.
+> The term _freeform gradient_ was coined by Adobe and isn't a commonly used term outside of the Adobe ecosystem. They are not a clearly defined and well established concept like mesh gradients. No other graphics editing application currently produces exactly the same gradient, though Canva recently added _diffusion gradients_ which act similarly.
 >
 > This proposal seeks to replicate the capability of Adobe's implementation of freeform gradients. However, we can bikeshed a different name.
 
@@ -143,7 +143,7 @@ The following image is an example of a freeform gradient being edited in Adobe I
 
 ![Screenshot of a freeform gradient being edited in Adobe Illustrator.](./freeform-gradient-editing.png)
 
-Freeform gradients are simple for authors to define, because they can place colour stops arbitrarily. Therefore, the proposed CSS syntax should also be simple for authors to write by hand without tooling.
+Freeform gradients are simple for authors to define, because the color stops aren't bound to a grid and can be placed arbitrarily, having an effect just on the surrounding area of the image. Therefore, the proposed CSS syntax should also be simple for authors to write by hand without tooling.
 
 The proposed API was designed with help from Sebastian Zartner, Lea Verou, Bramus and Tab Atkins-Bittner. The syntax definition is:
 
@@ -160,7 +160,7 @@ The simplest example of a freeform gradient using this syntax is:
 background-image: freeform-gradient(red top left, yellow bottom right);
 ```
 
-To make a colour stop that is a line rather than a single point, the author can list multiple positions:
+To make a colour stop that is a line rather than a single point, the author can list multiple positions, which defines a Catmull-Rom spline smoothly connecting the points:
 
 ```css
 background-image: freeform-gradient(
@@ -177,7 +177,7 @@ Unlike freeform gradients, mesh gradients are supported in many graphics librari
 
 Freeform gradients have a much simpler API than mesh gradients, so they would be much easier for authors to write in CSS by hand without using tooling.
 
-They both produce different types of 2D gradients. Generally, mesh gradients can't reproduce a complex freeform gradient, and visa versa.
+The two types produce *similar* but not *identical* types of types of 2D gradients. Generally, mesh gradients can't reproduce a complex freeform gradient, and visa versa, but either can get close to the other.
 
 ### Solving PDF serialisation
 
