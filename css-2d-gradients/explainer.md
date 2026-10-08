@@ -27,8 +27,9 @@ This document summarises the collective design work on 2D gradients in [CSSWG Gi
 - [Proposed Approach](#proposed-approach)
   - [`mesh-gradient()`](#mesh-gradient)
   - [`freeform-gradient()`](#freeform-gradient)
-  - [Comparison of mesh and freeform gradients](#comparison-of-mesh-and-freeform-gradients)
+  - [Comparison of mesh gradients and diffusion curves](#comparison-of-mesh-gradients-and-diffusion-curves)
   - [Solving PDF serialisation](#solving-pdf-serialisation)
+- [Future improvements](#future-improvements)
 - [Alternatives considered](#alternatives-considered)
   - [Define mesh gradients in SVG instead](#define-mesh-gradients-in-svg-instead)
   - [A choice of colour interpolation algorithms](#a-choice-of-colour-interpolation-algorithms)
@@ -53,10 +54,13 @@ CSS provides support for 1D gradient images (meaning the colour stops are define
 
 2D gradients have become a popular design choice. They are used extensively in many modern brand designs.
 
-Currently, the only way for authors to use any kind of 2D gradient on the web is by pre-rendering them in a image design application. There are not many free or open source applications that can produce them. Adobe Illustrator and Canva Affinity are the most popular tools for producing mesh gradients. Only Adobe Illustrator can produce freeform gradients.
+Currently, the only way for authors to use any kind of 2D gradient on the web is by pre-rendering them in a vector graphics application.
+
+Adobe Illustrator (paid), Canva Affinity (freeware) and Inkscape (open source) are the most popular tools for producing mesh gradients. For producing diffusion curves, only Adobe Illustrator and Canva Affinity can create them, but with different features and capabilities.
 
 ### Goals
 
+- Authors should be able to write 2D gradients by hand in CSS without tooling; just as they can with existing CSS gradients
 - It should be possible to serialise 2D gradients into PDF documents so that they are reproducible in print formats
 
 <!--
@@ -78,7 +82,7 @@ though we understand this is not always feasible.]
 
 ## Proposed Approach
 
-There are two proposed new `<gradient>` type functions.
+There are two proposed new functions for the CSS `<gradient>` type.
 
 ### `mesh-gradient()`
 
@@ -130,18 +134,20 @@ background-image: mesh-gradient(
 
 ### `freeform-gradient()`
 
-A freeform gradient is created by specifying colour stops made from points or lines at any arbitrary position on the gradient box. Each colour stop can have a spread value, which represents how much weight or dominance the colour has over other colours when they are interpolated.
+A diffusion curve, or freeform gradient, is created by specifying colour stops made from points, lines or shapes at any arbitrary position on the gradient box. Each colour stop can have a spread value, which represents how much weight or dominance the colour has over other colours when they are interpolated.
 
-To render the freeform gradient, the user agent can do a Delauney triangulation to produce a mesh using the colour points and then interpolate the intermediate colours.
+This proposal only includes support for points, but lines and shapes discussed in the [future improvements](#future-improvements) section.
 
-> [!NOTE]
-> The term _freeform gradient_ was coined by Adobe and isn't a commonly used term outside of the Adobe ecosystem. They are not a clearly defined and well established concept like mesh gradients. No other graphics editing application can create them.
->
-> This proposal seeks to replicate the capability of Adobe's implementation of freeform gradients. However, we can bikeshed a different name.
+To render the diffusion curve, the user agent can do a Delauney triangulation to produce a mesh using the colour points and then interpolate the intermediate colours.
 
 The following image is an example of a freeform gradient being edited in Adobe Illustrator. It demonstrates 16 colour stops placed in roughly the same locations as the mesh gradient example above, but the result is very different. A couple of the colour stops have had their spread value increased by a small amount.
 
 ![Screenshot of a freeform gradient being edited in Adobe Illustrator.](./freeform-gradient-editing.png)
+
+> [!NOTE]
+> The term _freeform gradient_ was coined by Adobe and isn't a commonly used term outside of the Adobe ecosystem. No other vector graphics applications can create diffusion curve-like gradients with points.
+>
+> This proposal seeks to replicate the capability of Adobe's implementation of freeform gradients. However, we should consider alternative names such as `diffusion-gradient()`.
 
 Freeform gradients are simple for authors to define, because they can place colour stops arbitrarily. Therefore, the proposed CSS syntax should also be simple for authors to write by hand without tooling.
 
@@ -149,7 +155,7 @@ The proposed API was designed with help from Sebastian Zartner, Lea Verou, Bramu
 
 ```
 freeform-gradient( <color-interpolation-method>? , <freeform-point># )
-<freeform-point> = <color> <number>? <position>+
+<freeform-point> = <color> <number>? <position>
 ```
 
 The syntax lists each colour stop with a number representing the spread value and position. The author can optionally list multiple positions to form a line.
@@ -160,24 +166,15 @@ The simplest example of a freeform gradient using this syntax is:
 background-image: freeform-gradient(red top left, yellow bottom right);
 ```
 
-To make a colour stop that is a line rather than a single point, the author can list multiple positions:
+### Comparison of mesh gradients and diffusion curves
 
-```css
-background-image: freeform-gradient(
-  red top left,
-  yellow bottom left bottom right top right
-);
-```
+Mesh gradients are a well known type of gradient in computer graphics. They were first introduced in Adobe Illustrator 8.0 in 1998 and were later supported in other graphics applications; whereas freeform gradients were introduced only in Adobe Illustrator 23.0 in 2018. Canva Affinity added diffusion gradients in September 2026 and it supports lines and shapes, but not points.
 
-### Comparison of mesh and freeform gradients
+Unlike diffusion curves, mesh gradients are supported in many graphics libraries including Skia, SwiftUI and Android UI (but they do not allow developers to select different colour space interpolations).
 
-Mesh gradients are a well known type of gradient in computer graphics. They were first introduced in Adobe Illustrator 8.0 in 1998 and were later supported in other graphics applications; whereas freeform gradients were introduced only in Adobe Illustrator 23.0 in 2018 and do not exist in other image editing applications (as far as I know).
+The `freeform-gradient()` proposal has a much simpler API than `mesh-gradient()`, so it should be much easier for authors to write `freeform-gradient()` in CSS by hand without using tooling. Additionally, diffusion curves are easier for designers to create in vector image applications than mesh gradients.
 
-Unlike freeform gradients, mesh gradients are supported in many graphics libraries including Skia, SwiftUI and Android UI (but they do not out-of-the-box allow developers to select different colour space interpolations).
-
-Freeform gradients have a much simpler API than mesh gradients, so they would be much easier for authors to write in CSS by hand without using tooling.
-
-They both produce different types of 2D gradients. Generally, mesh gradients can't reproduce a complex freeform gradient, and visa versa.
+They both produce different types of 2D gradients. Generally, mesh gradients can't reproduce a complex diffusion curve, and visa versa.
 
 ### Solving PDF serialisation
 
@@ -188,6 +185,25 @@ The CSS colour interpolation method can also supported in PDFs. This is done by 
 The issue includes [further discussion on PDF serialisation.](https://github.com/w3c/csswg-drafts/issues/7648#issuecomment-4807416203)
 
 However, some PDF viewers have low quality support for coons patch and tensor-product patch shadings, which can cause strange rendering artifacts including patches overlapping incorrectly or gaps where the patches join. We hope that, if 2D gradients become more popular, PDF implementations will improve the quality of their patch shading renders.
+
+## Future improvements
+
+The current proposal for the `freeform-gradient()` image function only supports points. The original scientific paper that introduced diffusion curves (see [References & acknowledgements](#references--acknowledgements)) defined the colour stops as **lines** rather than points. One of the main use cases for diffusion curves in the paper was for designers and artists to be able to trace over photographs to replicate smooth objects like fruit or create abstract art drawings.
+
+We could support **lines** by extending the `freeform-gradient()` function to support a list of multiple `<position>` types and draw a smoothed line using that. This would match how lines are defined in Adobe Illustrator.
+
+```css
+background-image: freeform-gradient(
+  red top left,
+  yellow bottom left bottom right top right
+);
+```
+
+However, I don't think that would provide enough fidelity for artists to control the exact shape of the lines. Canva Affinity allows designers to create more precise lines using bezier curves. I think the CSSWG needs to explore a syntax for defining lines.
+
+We could also support **having different colours projected out of the left and right sides of lines**.
+
+Finally, we could replicate Canva Affinity's diffusion gradients by supporting **shapes**.
 
 ## Alternatives considered
 
@@ -254,7 +270,7 @@ So many members and contributors to the CSSWG have been involved in the research
 
 - Amelia Bellamy-Royds for mesh gradient expertise and opinions and the initial proposal for the mesh gradient function syntax
 - Bramus for doing a lot of research and creating an AI-generated prototype tool that was incredibly helpful in understanding implementation support and exploring API proposals
-- Chris Lilly for explaining how freeform gradients can be rendered and for general advice and support
+- Chris Lilley for explaining how diffusion curves can be rendered and for general advice and support
 - Lea Verou for improving on the freeform gradient syntax
 - Mike Bremford (faceless2) for sharing the SVG2 `MeshGradient` proposal and for general PDF expertise
 - Sebastian Zartner for helping to define the freeform gradient syntax and investigating PDF viewer support for mesh gradients
@@ -265,6 +281,9 @@ So many members and contributors to the CSSWG have been involved in the research
 Thanks to the following proposals, projects, libraries, frameworks, and languages
 for their work on similar problems that influenced this proposal.
 
-- [SVG2 2015: Mesh gradients](https://www.w3.org/TR/2015/WD-SVG2-20150409/pservers.html#MeshGradients)
+- [SVG2 Working Draft: Mesh gradients](https://www.w3.org/TR/2015/WD-SVG2-20150409/pservers.html#MeshGradients) (2015)
 - [SwiftUI: Mesh gradient](https://developer.apple.com/documentation/swiftui/meshgradient)
 - [Android UI: Mesh gradient](https://developer.android.com/develop/ui/compose/graphics/draw/mesh-gradient)
+- [Diffusion Curves: A Vector Representation for Smooth-Shaded Images](https://maverick.inria.fr/Publications/2008/OBWBTS08) (2008, published in ACM)
+- [SVGWG proposal for diffusion curves](https://www.w3.org/Graphics/SVG/WG/wiki/Proposals/Advanced_Gradients) (2014)
+- [Inkscape research into diffusion curves](https://wiki.inkscape.org/wiki/index.php/Diffusion_Curves) (2010)
