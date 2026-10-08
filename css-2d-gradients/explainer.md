@@ -116,7 +116,9 @@ The simplest example of a mesh gradient using this syntax is:
 background-image: mesh-gradient(red, blue; green, yellow);
 ```
 
-In this example, there is one patch defined with the colours at each corner.
+In this example, there is one patch defined with the colours at each corner. It should render like this:
+
+![Mesh gradient with only one patch, with each corner a different colour.](./mesh-gradient-example-simple.png)
 
 A more complex example is:
 
