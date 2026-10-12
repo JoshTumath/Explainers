@@ -168,6 +168,10 @@ The simplest example of a freeform gradient using this syntax is:
 background-image: freeform-gradient(red top left, yellow bottom right);
 ```
 
+In this example, the colour points are at the top left corner and top right corner. It should render like this:
+
+![Freeform gradient with a red colour coming out of the top left corner and a yellow colour coming out of the bottom right corner.](freeform-gradient-example-simple.png)
+
 ### Comparison of mesh gradients and diffusion curves
 
 Mesh gradients are a well known type of gradient in computer graphics. They were first introduced in Adobe Illustrator 8.0 in 1998 and were later supported in other graphics applications; whereas freeform gradients were introduced only in Adobe Illustrator 23.0 in 2018. Canva Affinity added diffusion gradients in September 2026 and it supports lines and shapes, but not points.
